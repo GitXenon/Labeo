@@ -32,25 +32,16 @@ def make_filename(input_string, language_code, voice):
 
 def replace_numbers(input_str):
     def callback(match):
-        number = int(match.group())
-        word = num2words(number, lang="de")
+        number_str = match.group().replace(',', '.')
+        number = float(number_str)
+        if '€' in match.string or '$' in match.string:
+            word = num2words(number, to='currency', lang='de')
+        else:
+            word = num2words(number, lang='de')
         return word
 
-    return re.sub(r"\d+", callback, input_str)
-
-
-def replace_money(input_str):
-    """
-    TODO: Write the Regex to match 8,60€ and things like that
-    """
-
-    def callback(match):
-        number = int(match.group())
-        word = num2words(number, lang="de")
-        return word
-
-    return NotImplementedError
-    return re.sub(r"\d+", callback, input_str)
+    # https://stackoverflow.com/questions/5917082/regular-expression-to-match-numbers-with-or-without-commas-and-decimals-in-text
+    return re.sub(r"(\$|€)?\d*[.,]?\d+", callback, input_str)
 
 
 def tts_conversation(conversation: str):
@@ -79,8 +70,6 @@ def tts_conversation(conversation: str):
 
 def tts(input_str):
     input_str = cloze_remover(input_str)
-
-    # input_str = replace_money(input_str)
 
     input_str = replace_numbers(input_str)
 
