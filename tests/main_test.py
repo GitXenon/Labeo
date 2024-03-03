@@ -1,6 +1,6 @@
 import unittest
 
-from openai_tts import replace_numbers, cloze_remover
+from main import replace_numbers, cloze_remover, make_filename
 
 class TestReplaceNumbers(unittest.TestCase):
     def test_normal_case(self):
@@ -26,6 +26,11 @@ class TestReplaceNumbers(unittest.TestCase):
     def test_no_numbers(self):
         text = "Das ist ein einfacher Text."
         self.assertEqual(replace_numbers(text), text)
+
+    def test_time(self):
+        text = "Ich gehe um 11.30 Uhr ins Museum."
+        expected_output = "Ich gehe um elf Uhr dreißig ins Museum."
+        self.assertEqual(replace_numbers(text), expected_output)
 
     def test_money_with_comma(self):
         text = "Der Preis einer Banane beträgt 0,79 Euro."
@@ -100,5 +105,30 @@ class TestClozeRemover(unittest.TestCase):
         expected_output = "Test!"
         self.assertEqual(cloze_remover(text), expected_output)
 
+class TestMakeFilename(unittest.TestCase):
+    def test_basic_case(self):
+        text = "Was machst du gern?"
+        expected_output = "DE-male_Was_machst_du_gern.mp3"
+        voice = "male"
+        self.assertEqual(make_filename(text, "DE", voice), expected_output)
+
+    def test_azure_case(self):
+        text = "Ich war schon in Bern."
+        expected_output = "de-DE-ChristophNeural_Ich_war_schon_in_Bern.mp3"
+        voice = "de-DE-ChristophNeural"
+        self.assertEqual(make_filename(text, "DE", voice), expected_output)
+
+    def test_openai_case(self):
+        text = "Wie heißt du?"
+        expected_output = "DE-fable_Wie_heißt_du.mp3"
+        voice = "fable"
+        self.assertEqual(make_filename(text, "DE", voice), expected_output)
+
+    def test_mp3_case(self):
+        text = "Ich spiele gerne Computerspiele.mp3"
+        expected_output = "DE-nice_Ich_spiele_gerne_Computerspiele.mp3"
+        voice = "nice"
+        self.assertEqual(make_filename(text, "DE", voice), expected_output)
+    
 if __name__ == '__main__':
     unittest.main()
