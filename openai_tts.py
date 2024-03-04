@@ -29,7 +29,7 @@ class OpenAIClient:
 
     def tts(self, *, input_str: str):
         self.response = self.client.audio.speech.create(
-            model="tts_1", voice=self.voice, input=input_str
+            model="tts-1", voice=self.voice, input=input_str
         )
 
     def write_to_file(self, path: str):
