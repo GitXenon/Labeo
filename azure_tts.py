@@ -51,8 +51,6 @@ class AzureClient:
         }
         data = self.XML_TEMPLATE.format(voice=self.voice, text=input_str)
 
-        print(data)
-
         response = requests.post(self.TTS_ENDPONT, data=data.encode('utf-8'), headers=headers)
         self.response = response
 
