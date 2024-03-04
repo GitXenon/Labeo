@@ -51,7 +51,9 @@ class AzureClient:
         }
         data = self.XML_TEMPLATE.format(voice=self.voice, text=input_str)
 
-        response = requests.post(self.TTS_ENDPONT, data=data, headers=headers)
+        print(data)
+
+        response = requests.post(self.TTS_ENDPONT, data=data.encode('utf-8'), headers=headers)
         self.response = response
 
     def write_to_file(self, filepath: str):
