@@ -1,20 +1,34 @@
 import argparse
-import random
 import re
-import io
 import os
+import uuid
 
+import requests
 from dotenv import load_dotenv
 from pathlib import Path
-from pydub import AudioSegment
 from num2words import num2words
 
 from openai_tts import OpenAIClient
 from azure_tts import AzureClient
 
+class bcolors:
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+
+
 
 def cloze_remover(cloze_string: str):
     return re.sub(r"\{\{\w*::(.*?)(::.*?)?\}\}", r"\1", cloze_string)
+
+def is_conversation(text: str):
+    return True if re.search("\W - [A-Z]", text) else False
 
 
 def make_filename(input_string, language_code, voice):
@@ -56,46 +70,33 @@ def replace_numbers(input_str: str):
     # https://stackoverflow.com/questions/5917082/regular-expression-to-match-numbers-with-or-without-commas-and-decimals-in-text
     return re.sub(r"[$€]?(\d*[.,]?\d+(?:\sUhr)?)", callback, input_str)
 
+def translate(text: str):
+    AZURE_ENDPOINT = "https://api.cognitive.microsofttranslator.com/translate"
+    AZURE_TRANSLATION_API_KEY = os.getenv("AZURE_TRANSLATION_API_KEY")
 
-def tts_conversation(conversation: str):
-    # First separate the conversation into a list
-    conversation_list = conversation.split("@@")
+    headers = {
+        "Ocp-Apim-Subscription-Key": AZURE_TRANSLATION_API_KEY,
+        "Content-Type": "application/json; charset=UTF-8",
+        'Ocp-Apim-Subscription-Region': 'westeurope',
+        'X-ClientTraceId': str(uuid.uuid4())
+    }
 
-    # Have two voices for the conversation
-    voices = random.sample(["alloy", "echo", "fable", "onyx", "nova", "shimmer"], k=2)
+    params = {
+        'api-version': '3.0',
+        'from': 'de',
+        'to': 'en'
+    }
 
-    conversation = AudioSegment.empty()
+    body = [{"text": text}]
 
-    response = client.chat.completions.create(
-        model="gpt-3.5-turbo-0125",
-        messages=[
-            {
-                "role": "system",
-                "content": "Given a conversation between two people, you should reply with a title that summarize in a few words what the subject is. ONLY reply with the title. KEEP the size small.",
-            },
-            {"role": "user", "content": " ".join(conversation_list)},
-        ],
-        max_tokens=12,
-    )
-    filename = response.choices[0].message.content
-    filename = "".join(
-        c for c in filename if c.isalpha() or c.isdigit() or c == " "
-    ).rstrip()
+    response = requests.post(AZURE_ENDPOINT, params=params, headers=headers, json=body)
 
-    for i in range(len(conversation_list)):
-        input_str = cloze_remover(conversation_list[i])
-        input_str = replace_numbers(input_str)
-
-        response = client.audio.speech.create(
-            model="tts-1", voice=voices[i % 2], input=input_str
-        )
-
-        conversation += AudioSegment.from_mp3(io.BytesIO(response.content))
-        if i != len(conversation_list):
-            conversation += AudioSegment.silent(duration=600)
-
-    output_filename = "output/" + "DE_Konversation_" + filename + ".mp3"
-    conversation.export(output_filename, format="mp3")
+    if response.status_code == 200:
+        translated_text = response.json()[0]["translations"][0]["text"]
+        return translated_text
+    else:
+        print(f"{bcolors.FAIL}Error {response.status_code}: {response.text}{bcolors.ENDC}")
+        return None
 
 
 def tts(input_str):
@@ -104,7 +105,8 @@ def tts(input_str):
     input_str = replace_numbers(input_str)
 
     print(input_str)
-
+    print(translate(input_str))
+    
     voice = client.random_voice()
 
     filename_ai = make_filename(input_str, "DE", voice)
@@ -129,13 +131,6 @@ if __name__ == "__main__":
         default="azure",
         help="specify the text-to-speech service client (default: azure)",
     )
-    parser.add_argument(
-        "-c",
-        "--conversation",
-        action="store_true",
-        help='treats text as conversation, separated by "@@"',
-    )
-
     args = parser.parse_args()
 
     if args.client == "azure":
@@ -145,7 +140,4 @@ if __name__ == "__main__":
         OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
         client = OpenAIClient(api_key=OPENAI_API_KEY)
 
-    if args.conversation:
-        tts_conversation(args.text)
-    else:
-        tts(args.text)
+    tts(args.text)
