@@ -25,16 +25,12 @@ class AzureClient:
 
     def __init__(self, service_key):
         self.service_key = service_key
-        self.voice = "de-DE-ConradNeural"
+        self.voice = "de-DE-FlorianMultilingualNeural"
         self.response = None
 
     def random_voice(self):
         voice = random.choice(
             [
-                "de-DE-ChristophNeural",
-                "de-DE-ConradNeural",
-                "de-DE-ElkeNeural",
-                "de-DE-KlarissaNeural",
                 "de-DE-SeraphinaMultilingualNeural",
                 "de-DE-FlorianMultilingualNeural",
             ]
