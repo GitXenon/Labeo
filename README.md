@@ -1,17 +1,19 @@
 # TTS
+
 A small program to help me create audio for my Anki cards to practice German.
 
 ## Usage
 
-Run `python openai_tts.py --help` to learn how to use this program. The other files are not really used for now.
+Run `python main.py --help` to learn how to use this program. The other files are not really used for now.
 
 ## Setup
-You need an OpenAI API key for this program. When you have this, create a `.env` file in the root folder like this:
+
+Depending on your preference, you will need either an [Azure Speech API key](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/text-to-speech) or an [OpenAI API key](https://platform.openai.com/docs/overview). The [Azure Translation API key](https://learn.microsoft.com/en-us/azure/ai-services/translator/) is for translation and is mandatory for now.
+Azure has free tier options for both of the products and have given me better accuracy with German pronounciation. OpenAI has the tendancy of pronounciating in English on certain words.
+When you have the necessary keys, create a `.env` file in the root folder with the following content:
+
 ```
 OPENAI_API_KEY=<OPENAI_API_KEY>
+AZURE_SPEECH_API_KEY="<AZURE_SPEECH_API_KEY>"
+AZURE_TRANSLATION_API_KEY="<AZURE_TRANSLATION_API_KEY>"
 ```
-
-## TODO
-[] Add the ability to add pauses, like [1sec] would add to the .mp3 1 second pause. This could be hard when in the middle of a sentence.
-[] Add the possibility to have a conversation, maybe two inputs would create a conversation then could export to two files or could merge into one.
-[] Complete wikipedia fetching of pronounciation or help to automate the process. Right now I'm searching for the word, then I find the audio file which I find the best (author is ???) then I put it with the card.

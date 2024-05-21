@@ -11,6 +11,7 @@ from num2words import num2words
 from openai_tts import OpenAIClient
 from azure_tts import AzureClient
 
+
 class bcolors:
     HEADER = "\033[95m"
     OKBLUE = "\033[94m"
@@ -23,9 +24,9 @@ class bcolors:
     UNDERLINE = "\033[4m"
 
 
-
 def cloze_remover(cloze_string: str):
     return re.sub(r"\{\{\w*::(.*?)(::.*?)?\}\}", r"\1", cloze_string)
+
 
 def is_conversation(text: str):
     return True if re.search("\W - [A-Z]", text) else False
@@ -52,12 +53,18 @@ def replace_numbers(input_str: str):
     def callback(match: re.Match):
         if "Uhr" in match.group():
             time_str: str = match.group().replace(" Uhr", "")
-            hour_str, minute_str = time_str.split(".")
-            formatted_time = (
-                num2words(hour_str, lang="de")
-                + " Uhr "
-                + num2words(minute_str, lang="de")
-            )
+            try:
+                hour_str, minute_str = time_str.split(".")
+            except ValueError:
+                hour_str, minute_str = time_str, "null"
+            if minute_str == "null":
+                formatted_time = num2words(hour_str, lang="de") + " Uhr"
+            else:
+                formatted_time = (
+                    num2words(hour_str, lang="de")
+                    + " Uhr "
+                    + num2words(minute_str, lang="de")
+                )
             return formatted_time
         number_str = match.group().replace(",", ".")
         number = float(number_str)
@@ -70,6 +77,7 @@ def replace_numbers(input_str: str):
     # https://stackoverflow.com/questions/5917082/regular-expression-to-match-numbers-with-or-without-commas-and-decimals-in-text
     return re.sub(r"[$€]?(\d*[.,]?\d+(?:\sUhr)?)", callback, input_str)
 
+
 def translate(text: str):
     AZURE_ENDPOINT = "https://api.cognitive.microsofttranslator.com/translate"
     AZURE_TRANSLATION_API_KEY = os.getenv("AZURE_TRANSLATION_API_KEY")
@@ -77,15 +85,11 @@ def translate(text: str):
     headers = {
         "Ocp-Apim-Subscription-Key": AZURE_TRANSLATION_API_KEY,
         "Content-Type": "application/json; charset=UTF-8",
-        'Ocp-Apim-Subscription-Region': 'westeurope',
-        'X-ClientTraceId': str(uuid.uuid4())
+        "Ocp-Apim-Subscription-Region": "westeurope",
+        "X-ClientTraceId": str(uuid.uuid4()),
     }
 
-    params = {
-        'api-version': '3.0',
-        'from': 'de',
-        'to': 'en'
-    }
+    params = {"api-version": "3.0", "from": "de", "to": "en"}
 
     body = [{"text": text}]
 
@@ -95,7 +99,9 @@ def translate(text: str):
         translated_text = response.json()[0]["translations"][0]["text"]
         return translated_text
     else:
-        print(f"{bcolors.FAIL}Error {response.status_code}: {response.text}{bcolors.ENDC}")
+        print(
+            f"{bcolors.FAIL}Error {response.status_code}: {response.text}{bcolors.ENDC}"
+        )
         return None
 
 
@@ -106,7 +112,7 @@ def tts(input_str):
 
     print(input_str)
     print(translate(input_str))
-    
+
     voice = client.random_voice()
 
     filename_ai = make_filename(input_str, "DE", voice)
