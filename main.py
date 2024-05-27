@@ -27,11 +27,6 @@ class bcolors:
 def cloze_remover(cloze_string: str):
     return re.sub(r"\{\{\w*::(.*?)(::.*?)?\}\}", r"\1", cloze_string)
 
-
-def is_conversation(text: str):
-    return True if re.search("\W - [A-Z]", text) else False
-
-
 def make_filename(input_string, language_code, voice):
     # Replace spaces with underscores
     input_string = input_string.replace(" ", "_")
