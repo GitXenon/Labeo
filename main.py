@@ -8,24 +8,14 @@ from dotenv import load_dotenv
 from pathlib import Path
 from num2words import num2words
 
+from colors import bcolors
 from openai_tts import OpenAIClient
 from azure_tts import AzureClient
 
 
-class bcolors:
-    HEADER = "\033[95m"
-    OKBLUE = "\033[94m"
-    OKCYAN = "\033[96m"
-    OKGREEN = "\033[92m"
-    WARNING = "\033[93m"
-    FAIL = "\033[91m"
-    ENDC = "\033[0m"
-    BOLD = "\033[1m"
-    UNDERLINE = "\033[4m"
-
-
 def cloze_remover(cloze_string: str):
     return re.sub(r"\{\{\w*::(.*?)(::.*?)?\}\}", r"\1", cloze_string)
+
 
 def make_filename(input_string, language_code, voice):
     # Replace spaces with underscores
@@ -122,7 +112,7 @@ def tts(input_str):
 if __name__ == "__main__":
     load_dotenv()
 
-    parser = argparse.ArgumentParser(description="Text to speech using OpenAI API")
+    parser = argparse.ArgumentParser(description="Text-to-Speech Helper")
 
     parser.add_argument("text", type=str, help="text that needs to be speech")
     parser.add_argument(
@@ -136,9 +126,15 @@ if __name__ == "__main__":
 
     if args.client == "azure":
         AZURE_SPEECH_API_KEY = os.getenv("AZURE_SPEECH_API_KEY")
+        if not AZURE_SPEECH_API_KEY:
+            raise ValueError(
+                "Azure Speech API key is missing in the environment variables"
+            )
         client = AzureClient(service_key=AZURE_SPEECH_API_KEY)
     elif args.client == "openai":
         OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+        if not OPENAI_API_KEY:
+            raise ValueError("OpenAI API key is missing in the environment variables")
         client = OpenAIClient(api_key=OPENAI_API_KEY)
 
     tts(args.text)
