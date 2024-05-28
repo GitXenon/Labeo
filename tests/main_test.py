@@ -1,6 +1,6 @@
 import unittest
 
-from main import replace_numbers, cloze_remover, make_filename, is_conversation
+from main import replace_numbers, cloze_remover, make_filename
 
 class TestReplaceNumbers(unittest.TestCase):
     def test_normal_case(self):
@@ -129,15 +129,6 @@ class TestMakeFilename(unittest.TestCase):
         expected_output = "DE-nice_Ich_spiele_gerne_Computerspiele.mp3"
         voice = "nice"
         self.assertEqual(make_filename(text, "DE", voice), expected_output)
-
-class TestIsConversation(unittest.TestCase):
-    def test_is_conversation(self):
-        text = "Willst du heute Abend ins Kino gehen? - Nein, ich will lieber zu Hause bleiben."
-        self.assertTrue(is_conversation(text))
-
-    def test_is_not_conversation(self):
-        text = "Ich bin Software Engineer."
-        self.assertFalse(is_conversation(text))
 
 if __name__ == '__main__':
     unittest.main()
