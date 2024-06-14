@@ -1,11 +1,12 @@
 import random
+import uuid
 
 import requests
 
-from colors import bcolors
+from .colors import bcolors
 
 
-class AzureClient:
+class AzureTTSClient:
     TTS_ENDPONT = "https://westeurope.tts.speech.microsoft.com/cognitiveservices/v1"
     XML_TEMPLATE = """<speak version='1.0' xml:lang='de-DE'>
     <voice xml:lang='de-DE'
@@ -57,3 +58,33 @@ class AzureClient:
             print(
                 f"{bcolors.WARNING}Warning: You need to call the function tts() before{bcolors.ENDC}"
             )
+
+class AzureTranslateClient:
+
+    def __init__(self, api_key: str, source_lang: str, target_lang: str):
+        self.api_key = api_key
+        self.source_lang = source_lang.lower()
+        self.target_lang = target_lang.lower()
+
+    def translate(self, text: str):
+        AZURE_ENDPOINT = "https://api.cognitive.microsofttranslator.com/translate"
+
+        headers = {
+            "Ocp-Apim-Subscription-Key": self.api_key,
+            "Content-Type": "application/json; charset=UTF-8",
+            "Ocp-Apim-Subscription-Region": "westeurope",
+            "X-ClientTraceId": str(uuid.uuid4()),
+        }
+
+        params = {"api-version": "3.0", "from": self.source_lang, "to": self.target_lang}
+
+        body = [{"text": text}]
+
+        response = requests.post(AZURE_ENDPOINT, params=params, headers=headers, json=body)
+
+        if response.status_code == 200:
+            translated_text: str = response.json()[0]["translations"][0]["text"]
+            return translated_text
+        else:
+            print(
+                f"{bcolors.FAIL}Error {response.status_code}: {response.text}{bcolors.ENDC}")

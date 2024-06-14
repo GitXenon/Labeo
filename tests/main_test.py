@@ -1,4 +1,8 @@
 import unittest
+import os
+import sys
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '')))
 
 from main import replace_numbers, cloze_remover, make_filename
 
@@ -40,6 +44,12 @@ class TestReplaceNumbers(unittest.TestCase):
     def test_money_with_comma(self):
         text = "Die Schokolade kostet 1,99 Euro pro Tafel."
         expected_output = "Die Schokolade kostet eins Komma neun neun Euro pro Tafel."
+        self.assertEqual(replace_numbers(text), expected_output)
+
+    @unittest.expectedFailure
+    def test_date(self):
+        text = "Mein Geburtstag ist am 23. Februar."
+        expected_output = "Mein Geburtstag ist am dreiundzwanzigste Februar."
         self.assertEqual(replace_numbers(text), expected_output)
 
 class TestClozeRemover(unittest.TestCase):

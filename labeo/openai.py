@@ -2,10 +2,10 @@ import random
 
 from openai import OpenAI
 
-from colors import bcolors
+from .colors import bcolors
 
 
-class OpenAIClient:
+class OpenAITTSClient:
     def __init__(self, api_key):
         self.client = OpenAI(api_key=api_key)
         self.response = None
