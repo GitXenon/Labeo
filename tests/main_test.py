@@ -2,55 +2,99 @@ import unittest
 import os
 import sys
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "")))
 
 from main import replace_numbers, cloze_remover, make_filename
 
+
 class TestReplaceNumbers(unittest.TestCase):
-    def test_normal_case(self):
-        text = "Ich habe 3 Äpfel in meiner Tasche."
-        expected_output = "Ich habe drei Äpfel in meiner Tasche."
-        self.assertEqual(replace_numbers(text), expected_output)
+    def test_cardinal_numbers(self):
+        self.assertEqual(replace_numbers("Ich habe 3 Äpfel."), "Ich habe drei Äpfel.")
 
-    def test_money_case_euro(self):
-        text = "Er hat 100 Euro von seinem Teilzeitjob verdient."
-        expected_output = "Er hat einhundert Euro von seinem Teilzeitjob verdient."
-        self.assertEqual(replace_numbers(text), expected_output)
+    def test_ordinal_numbers(self):
+        self.assertEqual(
+            replace_numbers("Er ist der 1. in der Klasse."),
+            "Er ist der erste in der Klasse.",
+        )
 
-    def test_money_case_dollar(self):
-        text = "Das Hotelzimmer kostet 150 Dollar pro Nacht."
-        expected_output = "Das Hotelzimmer kostet einhundertfünfzig Dollar pro Nacht."
-        self.assertEqual(replace_numbers(text), expected_output)
+    def test_decimal_numbers(self):
+        self.assertEqual(
+            replace_numbers("Die Temperatur beträgt 21,5 Grad."),
+            "Die Temperatur beträgt einundzwanzig Komma fünf Grad.",
+        )
 
-    def test_combined_case(self):
-        text = "Der preis einer Apfel beträgt 0,36 Euro oder 0,56 Euro."
-        expected_output = "Der preis einer Apfel beträgt null Komma drei sechs Euro oder null Komma fünf sechs Euro."
-        self.assertEqual(replace_numbers(text), expected_output)
+    def test_negative_numbers(self):
+        self.assertEqual(
+            replace_numbers("Es sind -5 Grad draußen."),
+            "Es sind minus fünf Grad draußen.",
+        )
+
+    def test_large_numbers(self):
+        self.assertEqual(
+            replace_numbers("Die Stadt hat 1.000.000 Einwohner."),
+            "Die Stadt hat eine Million Einwohner.",
+        )
+
+    def test_currency_euro(self):
+        self.assertEqual(
+            replace_numbers("Das Buch kostet 29,99 €."),
+            "Das Buch kostet neunundzwanzig Euro neunundneunzig Cent.",
+        )
+
+    def test_currency_dollar(self):
+        self.assertEqual(
+            replace_numbers("Der Preis beträgt 50 $."),
+            "Der Preis beträgt fünfzig Dollar.",
+        )
+
+    def test_time(self):
+        self.assertEqual(
+            replace_numbers("Der Zug fährt um 14.30 Uhr ab."),
+            "Der Zug fährt um vierzehn Uhr dreißig ab.",
+        )
+
+    def test_date(self):
+        self.assertEqual(
+            replace_numbers("Heute ist der 15.07.2023."),
+            "Heute ist der fünfzehnte siebte zweitausenddreiundzwanzig.",
+        )
+
+    def test_year(self):
+        self.assertEqual(
+            replace_numbers("Das Buch wurde 1984 veröffentlicht."),
+            "Das Buch wurde neunzehnhundertvierundachtzig veröffentlicht.",
+        )
+
+    def test_phone_number(self):
+        self.assertEqual(
+            replace_numbers("Meine Nummer ist 0123 456789."),
+            "Meine Nummer ist null eins zwei drei vier fünf sechs sieben acht neun.",
+        )
+
+    def test_mathematical_expression(self):
+        self.assertEqual(replace_numbers("2 + 2 = 4"), "zwei plus zwei gleich vier")
+
+    def test_fractions(self):
+        self.assertEqual(
+            replace_numbers("1/4 der Bevölkerung"), "ein Viertel der Bevölkerung"
+        )
+
+    def test_percentages(self):
+        self.assertEqual(
+            replace_numbers("Die Inflation beträgt 2,5%."),
+            "Die Inflation beträgt zwei Komma fünf Prozent.",
+        )
+
+    def test_mixed_numbers(self):
+        self.assertEqual(
+            replace_numbers("Er hat 2 1/2 Stunden gearbeitet."),
+            "Er hat zwei ein halb Stunden gearbeitet.",
+        )
 
     def test_no_numbers(self):
         text = "Das ist ein einfacher Text."
         self.assertEqual(replace_numbers(text), text)
 
-    def test_time(self):
-        text = "Ich gehe um 11.30 Uhr ins Museum."
-        expected_output = "Ich gehe um elf Uhr dreißig ins Museum."
-        self.assertEqual(replace_numbers(text), expected_output)
-
-    def test_money_with_comma(self):
-        text = "Der Preis einer Banane beträgt 0,79 Euro."
-        expected_output = "Der Preis einer Banane beträgt null Komma sieben neun Euro."
-        self.assertEqual(replace_numbers(text), expected_output)
-
-    def test_money_with_comma(self):
-        text = "Die Schokolade kostet 1,99 Euro pro Tafel."
-        expected_output = "Die Schokolade kostet eins Komma neun neun Euro pro Tafel."
-        self.assertEqual(replace_numbers(text), expected_output)
-
-    @unittest.expectedFailure
-    def test_date(self):
-        text = "Mein Geburtstag ist am 23. Februar."
-        expected_output = "Mein Geburtstag ist am dreiundzwanzigste Februar."
-        self.assertEqual(replace_numbers(text), expected_output)
 
 class TestClozeRemover(unittest.TestCase):
     def test_multiple_cloze(self):
@@ -115,6 +159,7 @@ class TestClozeRemover(unittest.TestCase):
         expected_output = "Test!"
         self.assertEqual(cloze_remover(text), expected_output)
 
+
 class TestMakeFilename(unittest.TestCase):
     def test_basic_case(self):
         text = "Was machst du gern?"
@@ -140,5 +185,6 @@ class TestMakeFilename(unittest.TestCase):
         voice = "nice"
         self.assertEqual(make_filename(text, "DE", voice), expected_output)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

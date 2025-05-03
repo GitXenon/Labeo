@@ -1,10 +1,10 @@
 import argparse
 import re
 import os
+from num2words import num2words
 
 from dotenv import load_dotenv
 from pathlib import Path
-from num2words import num2words
 
 from labeo.deepl import DeeplTranslateClient
 from labeo.openai import OpenAITTSClient
@@ -30,81 +30,237 @@ def make_filename(input_string, language_code, voice):
         return voice + "_" + input_string
     else:
         return language_code + "-" + voice + "_" + input_string
-    
 
-def format_time_string(time_str: str) -> str:
-    """Format a time string in German.
 
-    This function takes a time string, splits it into hours and minutes, 
-    converts them to words in German, and then formats them accordingly.
+def replace_numbers(input_str: str) -> str:
+    """
+    Replace numeric representations in German text with their word equivalents.
 
     Args:
-        time_str (str): The time string to format, e.g., '13.45' or '13'.
+        input_str: The input string containing numbers to replace
 
     Returns:
-        str: The formatted time string in German.
+        String with numbers replaced by words
     """
-    try:
-        hour_str, minute_str = time_str.split(".")
-    except ValueError:
-        hour_str, minute_str = time_str, "null"
-    
-    if minute_str == "null":
-        formatted_time = num2words(hour_str, lang="de") + " Uhr"
-    else:
-        formatted_time = (
-            num2words(hour_str, lang="de") + " Uhr " + num2words(minute_str, lang="de")
-        )
-    
-    return formatted_time
+    if not input_str:
+        return input_str
 
+    # Helper function to clean German number format
+    def clean_number(num_str):
+        # Replace German thousands separator
+        cleaned = num_str.replace(".", "")
+        # Replace German decimal separator with dot for processing
+        cleaned = cleaned.replace(",", ".")
+        return cleaned
 
-def replace_numbers(input_str: str):
-    """Replace numbers in a string with their word equivalents in German.
+    # Process dates (DD.MM.YYYY)
+    date_pattern = r"\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b"
 
-    This function looks for numbers in the input string and replaces them 
-    with their corresponding words in German. It handles numbers that represent
-    time (with 'Uhr') and currency (Euro or Dollar).
+    def replace_date(match):
+        day = int(match.group(1))
+        month = int(match.group(2))
+        year = int(match.group(3))
+        day_str = num2words(day, lang="de", to="ordinal")
+        month_str = num2words(month, lang="de")
+        year_str = num2words(year, lang="de", to="year")
+        return f"{day_str} {month_str} {year_str}"
 
-    Args:
-        input_str (str): The input string containing numbers.
+    input_str = re.sub(date_pattern, replace_date, input_str)
 
-    Returns:
-        str: The input string with numbers replaced by words in German.
-    """
-    def _callback(match: re.Match):
-        matched_str = match.group()
-        if "Uhr" in matched_str:
-            time_str: str = matched_str.replace(" Uhr", "")
-            return format_time_string(time_str)
+    # Process times (HH.MM Uhr)
+    time_pattern = r"\b(\d{1,2})\.(\d{2}) Uhr\b"
 
-        number_str = match.group().replace(",", ".")
-        number = float(number_str)
-        if "€" in match.string or "$" in match.string:
-            word = num2words(number, to="currency", lang="de")
+    def replace_time(match):
+        hour = int(match.group(1))
+        minute = int(match.group(2))
+        hour_str = num2words(hour, lang="de")
+        minute_str = num2words(minute, lang="de")
+        return f"{hour_str} Uhr {minute_str}"
+
+    input_str = re.sub(time_pattern, replace_time, input_str)
+
+    # Process Euro currency
+    euro_pattern = r"(\d+(?:[,.]\d+)?) €"
+
+    def replace_euro(match):
+        amount = clean_number(match.group(1))
+        return num2words(float(amount), lang="de", to="currency", currency="EUR")
+
+    input_str = re.sub(euro_pattern, replace_euro, input_str)
+
+    # Process Dollar currency
+    dollar_pattern = r"(\d+(?:[,.]\d+)?) \$"
+
+    def replace_dollar(match):
+        amount = float(clean_number(match.group(1)))
+        return f"{num2words(amount, lang='de')} Dollar"
+
+    input_str = re.sub(dollar_pattern, replace_dollar, input_str)
+
+    # Process percentages
+    percentage_pattern = r"(\d+(?:[,.]\d+)?)%"
+
+    def replace_percentage(match):
+        number = clean_number(match.group(1))
+        if "." in number:
+            int_part, dec_part = number.split(".")
+            return f"{num2words(int(int_part), lang='de')} Komma {num2words(int(dec_part), lang='de')} Prozent"
         else:
-            word = num2words(number, lang="de")
-        return word
+            return f"{num2words(int(number), lang='de')} Prozent"
 
-    # https://stackoverflow.com/questions/5917082/regular-expression-to-match-numbers-with-or-without-commas-and-decimals-in-text
-    return re.sub(r"[$€]?(\d*[.,]?\d+(?:\sUhr)?)", _callback, input_str)
+    input_str = re.sub(percentage_pattern, replace_percentage, input_str)
+
+    # Process phone numbers
+    phone_pattern = r"\b(\d{4}) (\d{6})\b"
+
+    def replace_phone(match):
+        digits = match.group(1) + match.group(2)
+        return " ".join(num2words(int(digit), lang="de") for digit in digits)
+
+    input_str = re.sub(phone_pattern, replace_phone, input_str)
+
+    # Process fractions
+    fraction_pattern = r"\b(\d+)/(\d+)\b"
+
+    def replace_fraction(match):
+        numerator = int(match.group(1))
+        denominator = int(match.group(2))
+
+        # Special case for common fractions
+        if numerator == 1 and denominator == 4:
+            return "ein Viertel"
+        elif numerator == 1 and denominator == 2:
+            return "ein halb"
+        else:
+            numerator_str = num2words(numerator, lang="de")
+            denominator_str = num2words(denominator, lang="de")
+            return f"{numerator_str}/{denominator_str}"
+
+    input_str = re.sub(fraction_pattern, replace_fraction, input_str)
+
+    # Process mixed numbers
+    mixed_pattern = r"\b(\d+) (\d+)/(\d+)\b"
+
+    def replace_mixed(match):
+        whole = int(match.group(1))
+        numerator = int(match.group(2))
+        denominator = int(match.group(3))
+
+        whole_str = num2words(whole, lang="de")
+
+        # Special case for 1/2
+        if numerator == 1 and denominator == 2:
+            return f"{whole_str} einhalb"
+        else:
+            fraction_str = (
+                num2words(numerator, lang="de")
+                + "/"
+                + num2words(denominator, lang="de")
+            )
+            return f"{whole_str} {fraction_str}"
+
+    input_str = re.sub(mixed_pattern, replace_mixed, input_str)
+
+    # Process mathematical expressions
+    math_pattern = r"(\d+) ([+\-*/=]) (\d+)"
+
+    def replace_math(match):
+        first = int(match.group(1))
+        operator = match.group(2)
+        second = int(match.group(3))
+
+        first_str = num2words(first, lang="de")
+        second_str = num2words(second, lang="de")
+
+        operator_words = {
+            "+": "plus",
+            "-": "minus",
+            "*": "mal",
+            "/": "geteilt durch",
+            "=": "gleich",
+        }
+
+        return f"{first_str} {operator_words.get(operator, operator)} {second_str}"
+
+    input_str = re.sub(math_pattern, replace_math, input_str)
+
+    # Process years (standalone 4-digit numbers that might be years)
+    year_pattern = r"\b(19\d{2}|20\d{2})\b"
+
+    def replace_year(match):
+        year = int(match.group(1))
+        return num2words(year, lang="de", to="year")
+
+    input_str = re.sub(year_pattern, replace_year, input_str)
+
+    # Process ordinal numbers
+    ordinal_pattern = r"\b(\d+)\."
+
+    def replace_ordinal(match):
+        number = int(match.group(1))
+        return num2words(number, lang="de", to="ordinal")
+
+    input_str = re.sub(ordinal_pattern, replace_ordinal, input_str)
+
+    # Process decimal numbers
+    decimal_pattern = r"\b-?(\d+),(\d+)\b"
+
+    def replace_decimal(match):
+        int_part = match.group(1)
+        dec_part = match.group(2)
+        prefix = "minus " if int_part.startswith("-") else ""
+        int_part = int_part.lstrip("-")
+        int_str = num2words(int(int_part), lang="de")
+        dec_str = num2words(int(dec_part), lang="de")
+        return f"{prefix}{int_str} Komma {dec_str}"
+
+    input_str = re.sub(decimal_pattern, replace_decimal, input_str)
+
+    # Process negative numbers
+    negative_pattern = r"\b-(\d+)\b"
+
+    def replace_negative(match):
+        number = int(match.group(1))
+        return f"minus {num2words(number, lang='de')}"
+
+    input_str = re.sub(negative_pattern, replace_negative, input_str)
+
+    # Process large numbers with thousand separators
+    large_pattern = r"\b(\d{1,3}(?:\.\d{3})+)\b"
+
+    def replace_large(match):
+        number = clean_number(match.group(1))
+        return num2words(int(number), lang="de")
+
+    input_str = re.sub(large_pattern, replace_large, input_str)
+
+    # Process any remaining cardinal numbers
+    cardinal_pattern = r"\b\d+\b"
+
+    def replace_cardinal(match):
+        return num2words(int(match.group(0)), lang="de")
+
+    input_str = re.sub(cardinal_pattern, replace_cardinal, input_str)
+
+    return input_str
 
 
 def tts(input_str: str):
-    input_str = cloze_remover(input_str)
+    parsed_input_str = cloze_remover(input_str)
 
-    input_str = replace_numbers(input_str)
+    text_str = replace_numbers(parsed_input_str)
 
-    print(input_str)
-    print(translate_client.translate(input_str))
+    print(text_str)
+    translation = translate_client.translate(text_str)
+    print(translation)
 
     voice = tts_client.random_voice()
 
-    filename_ai = make_filename(input_str, "DE", voice)
+    filename_ai = make_filename(text_str, "DE", voice)
     output_folder_path = Path(__file__).parent / "output"
     speech_file_path = output_folder_path / filename_ai
 
-    tts_client.tts(input_str=input_str)
+    tts_client.tts(input_str=text_str)
 
     tts_client.write_to_file(speech_file_path)
 
@@ -127,7 +283,7 @@ if __name__ == "__main__":
         "--translator",
         choices=["azure", "deepl"],
         default="deepl",
-        help="specify the translation service client (default: deepl)"
+        help="specify the translation service client (default: deepl)",
     )
     args = parser.parse_args()
 
@@ -147,14 +303,18 @@ if __name__ == "__main__":
     if args.translator == "deepl":
         DEEPL_API_KEY = os.getenv("DEEPL_API_KEY")
         if not DEEPL_API_KEY:
-            raise ValueError(
-                "Deepl API key is missing in the environment variables"
-            )
-        translate_client = DeeplTranslateClient(api_key=DEEPL_API_KEY, source_lang="de", target_lang="en")
+            raise ValueError("Deepl API key is missing in the environment variables")
+        translate_client = DeeplTranslateClient(
+            api_key=DEEPL_API_KEY, source_lang="de", target_lang="en"
+        )
     elif args.translator == "azure":
         AZURE_TRANSLATION_API_KEY = os.getenv("AZURE_TRANSLATION_API_KEY")
         if not AZURE_TRANSLATION_API_KEY:
-            raise ValueError("Azure Translation API key is missing in the environment variables")
-        translate_client = AzureTranslateClient(api_key=AZURE_TRANSLATION_API_KEY, source_lang="de", target_lang="en")
+            raise ValueError(
+                "Azure Translation API key is missing in the environment variables"
+            )
+        translate_client = AzureTranslateClient(
+            api_key=AZURE_TRANSLATION_API_KEY, source_lang="de", target_lang="en"
+        )
 
     tts(args.text)

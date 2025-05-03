@@ -46,7 +46,7 @@ class AzureTTSClient:
         self.response = response
 
     def write_to_file(self, filepath: str):
-        if self.response != None:
+        if self.response is not None:
             with open(filepath, mode="wb") as f:
                 f.write(self.response.content)
             print(
@@ -59,8 +59,8 @@ class AzureTTSClient:
                 f"{bcolors.WARNING}Warning: You need to call the function tts() before{bcolors.ENDC}"
             )
 
-class AzureTranslateClient:
 
+class AzureTranslateClient:
     def __init__(self, api_key: str, source_lang: str, target_lang: str):
         self.api_key = api_key
         self.source_lang = source_lang.lower()
@@ -76,15 +76,22 @@ class AzureTranslateClient:
             "X-ClientTraceId": str(uuid.uuid4()),
         }
 
-        params = {"api-version": "3.0", "from": self.source_lang, "to": self.target_lang}
+        params = {
+            "api-version": "3.0",
+            "from": self.source_lang,
+            "to": self.target_lang,
+        }
 
         body = [{"text": text}]
 
-        response = requests.post(AZURE_ENDPOINT, params=params, headers=headers, json=body)
+        response = requests.post(
+            AZURE_ENDPOINT, params=params, headers=headers, json=body
+        )
 
         if response.status_code == 200:
             translated_text: str = response.json()[0]["translations"][0]["text"]
             return translated_text
         else:
             print(
-                f"{bcolors.FAIL}Error {response.status_code}: {response.text}{bcolors.ENDC}")
+                f"{bcolors.FAIL}Error {response.status_code}: {response.text}{bcolors.ENDC}"
+            )

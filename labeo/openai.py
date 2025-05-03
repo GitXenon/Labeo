@@ -23,7 +23,7 @@ class OpenAITTSClient:
         )
 
     def write_to_file(self, path: str):
-        if self.response != None:
+        if self.response is not None:
             self.response.write_to_file(path)
             print(f"{bcolors.OKGREEN}Success: Wrote response to {path}{bcolors.ENDC}")
             self.response = None

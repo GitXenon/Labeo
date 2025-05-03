@@ -155,3 +155,4 @@ cython_debug/
 # input and output folder
 output/
 input/
+.aider*
