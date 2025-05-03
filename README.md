@@ -1,4 +1,4 @@
-# LabeoLabel
+# Labeo
 
 <p><img src="https://badgen.net/static/python/3.12" alt="python version"> <a href="https://github.com/GitXenon/tts/blob/main/LICENSE"><img src="https://badgen.net/github/license/GitXenon/tts" alt="License"></a></p>
 A small program to help me create audio for my Anki cards to practice German.
