@@ -61,7 +61,8 @@ def replace_numbers(input_str: str) -> str:
         month = int(match.group(2))
         year = int(match.group(3))
         day_str = num2words(day, lang="de", to="ordinal")
-        month_str = num2words(month, lang="de")
+        # use ordinal for month as well
+        month_str = num2words(month, lang="de", to="ordinal")
         year_str = num2words(year, lang="de", to="year")
         return f"{day_str} {month_str} {year_str}"
 
@@ -84,7 +85,10 @@ def replace_numbers(input_str: str) -> str:
 
     def replace_euro(match):
         amount = clean_number(match.group(1))
-        return num2words(float(amount), lang="de", to="currency", currency="EUR")
+        words = num2words(float(amount), lang="de", to="currency", currency="EUR")
+        # remove 'und' between Euro and Cent for consistency
+        words = words.replace(" Euro und ", " Euro ")
+        return words
 
     input_str = re.sub(euro_pattern, replace_euro, input_str)
 
@@ -183,6 +187,8 @@ def replace_numbers(input_str: str) -> str:
         return f"{first_str} {operator_words.get(operator, operator)} {second_str}"
 
     input_str = re.sub(math_pattern, replace_math, input_str)
+    # Replace standalone equals sign between spaces with 'gleich'
+    input_str = re.sub(r"\s=\s", " gleich ", input_str)
 
     # Process years (standalone 4-digit numbers that might be years)
     year_pattern = r"\b(19\d{2}|20\d{2})\b"
@@ -193,8 +199,8 @@ def replace_numbers(input_str: str) -> str:
 
     input_str = re.sub(year_pattern, replace_year, input_str)
 
-    # Process ordinal numbers
-    ordinal_pattern = r"\b(\d+)\."
+    # Process ordinal numbers (digits followed by dot, not part of a larger number)
+    ordinal_pattern = r"\b(\d+)\.(?!\d)"
 
     def replace_ordinal(match):
         number = int(match.group(1))
@@ -217,7 +223,8 @@ def replace_numbers(input_str: str) -> str:
     input_str = re.sub(decimal_pattern, replace_decimal, input_str)
 
     # Process negative numbers
-    negative_pattern = r"\b-(\d+)\b"
+    # match minus sign before digits
+    negative_pattern = r"-(\d+)\b"
 
     def replace_negative(match):
         number = int(match.group(1))
